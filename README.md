@@ -60,3 +60,20 @@ hnreader.exe
 ```
 hnreader.exe -story 5 -user 3
 ```
+### Results Output
+Default output printed as a table. Depends on the number of stories and users, it might look unreadable. You can pass a 
+flag to print the output as a list:
+```
+./hnreader -story 5 -user 3 -output list
+```
+```text
+╭─ Cog: Containers for Machine Learning
+│  ╰─ nigma1337 (1 for story - 1 total)
+├─ Changing std:sort at Google’s scale and beyond
+│  ├─ orlp (8 for story - 8 total)
+│  ├─ tsimionescu (7 for story - 8 total)
+│  ├─ danlark (4 for story - 4 total)
+│  ├─ jeffbee (4 for story - 4 total)
+│  ╰─ samhw (4 for story - 4 total)
+
+```
