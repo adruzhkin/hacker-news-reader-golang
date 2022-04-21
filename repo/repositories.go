@@ -56,7 +56,7 @@ func (r *StoryRepo) AddNew(story *models.Story) {
 	r.Stories[story] = userRepo
 }
 
-func (r *StoryRepo) GetStories(story *models.Story) *UserRepo {
+func (r *StoryRepo) GetUsersFor(story *models.Story) *UserRepo {
 	r.Mutex.Lock()
 	defer r.Mutex.Unlock()
 

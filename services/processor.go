@@ -45,6 +45,6 @@ func (s *Service) Process(commentID int, story *models.Story, wg *sync.WaitGroup
 	name := comment.CreatedBy
 	s.MainUserRepo.IncrementCountFor(name)
 
-	userRepo := s.MainStoryRepo.GetStories(comment.Story)
+	userRepo := s.MainStoryRepo.GetUsersFor(comment.Story)
 	userRepo.IncrementCountFor(name)
 }
