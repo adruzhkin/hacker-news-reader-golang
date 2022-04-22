@@ -60,6 +60,10 @@ hnreader.exe
 ```
 hnreader.exe -story 5 -user 3
 ```
+You can verify the checksum for `hnreader.exe` if required:
+```bash
+sha512sum -c hnreader_sha512sums.txt
+```
 ### Results Output
 Default output printed as a table. Depends on the number of stories and users, it might look unreadable. You can pass a 
 flag to print the output as a list:
