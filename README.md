@@ -32,7 +32,7 @@ The output to look as follows:
 
 ### Build and Run
 
-- Dependency Golang v1.17
+- Dependency Golang v1.26.1
 
 To run the service with default numbers of stories (30) and commenters (10):
 ```

@@ -3,7 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/adruzhkin/hacker-news-reader-golang/models"
@@ -25,7 +25,7 @@ func (s *Service) FetchStoryIDs() (stories []int, err error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return []int{}, err
 	}
@@ -47,7 +47,7 @@ func (s *Service) FetchStory(id int) (story models.Story, err error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return models.Story{}, err
 	}
@@ -69,7 +69,7 @@ func (s *Service) FetchComment(id int) (comment models.Comment, err error) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return models.Comment{}, err
 	}
