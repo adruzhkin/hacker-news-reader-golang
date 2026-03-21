@@ -1,3 +1,4 @@
+// Command hn-reader fetches top Hacker News stories and identifies the most prolific commenters per story.
 package main
 
 import (
@@ -10,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/adruzhkin/hacker-news-reader-golang/models"
+	"github.com/adruzhkin/hacker-news-reader-golang/model"
 	"github.com/adruzhkin/hacker-news-reader-golang/repo"
-	"github.com/adruzhkin/hacker-news-reader-golang/services"
+	"github.com/adruzhkin/hacker-news-reader-golang/service"
 	"github.com/jedib0t/go-pretty/v6/list"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
@@ -23,6 +24,7 @@ var (
 	pool       = make(chan Job)
 )
 
+// Job represents a unit of work containing a story ID to be processed.
 type Job struct {
 	StoryID int
 }
@@ -46,9 +48,9 @@ func main() {
 
 	mainStoryRepo := repo.NewStoryRepo()
 	mainUserRepo := repo.NewUserRepo()
-	service := services.New(*storyLimit, mainStoryRepo, mainUserRepo, 20, httpClient)
+	svc := service.New(*storyLimit, mainStoryRepo, mainUserRepo, 20, httpClient)
 
-	stories, err := service.FetchStoryIDs(ctx)
+	stories, err := svc.FetchStoryIDs(ctx)
 	if err != nil {
 		log.Fatalf("failed to fetch story IDs: %v", err)
 	}
@@ -58,7 +60,7 @@ func main() {
 	go allocateJobs(stories)
 	for job := range pool {
 		wg.Add(1)
-		go service.ProcessStory(ctx, job.StoryID, &wg)
+		go svc.ProcessStory(ctx, job.StoryID, &wg)
 	}
 	wg.Wait()
 
@@ -81,7 +83,7 @@ func printResultsAsList(storyRepo *repo.StoryRepo, userRepo *repo.UserRepo, limi
 	l := list.NewWriter()
 	l.SetStyle(list.StyleConnectedRounded)
 
-	storyRepo.ForEach(func(story models.Story, users *repo.UserRepo) {
+	storyRepo.ForEach(func(story model.Story, users *repo.UserRepo) {
 		l.AppendItem(text.FgCyan.Sprint(story.Title))
 		l.Indent()
 		for _, user := range users.GetTopUsers(limit) {

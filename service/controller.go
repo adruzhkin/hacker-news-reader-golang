@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/adruzhkin/hacker-news-reader-golang/models"
+	"github.com/adruzhkin/hacker-news-reader-golang/model"
 )
 
 const sortKey = "%22$key%22"
@@ -76,6 +76,7 @@ func (s *Service) doWithRetry(ctx context.Context, url string, maxAttempts int) 
 	return nil, lastErr
 }
 
+// FetchStoryIDs fetches the top story IDs from the HN API, limited to s.StoryLimit.
 func (s *Service) FetchStoryIDs(ctx context.Context) (stories []int, err error) {
 	url := fmt.Sprintf(baseURL, s.StoryLimit, sortKey)
 
@@ -91,9 +92,10 @@ func (s *Service) FetchStoryIDs(ctx context.Context) (stories []int, err error) 
 	return stories, nil
 }
 
-func (s *Service) FetchStory(ctx context.Context, id int) (story models.Story, err error) {
+// FetchStory fetches a single story by ID from the HN API.
+func (s *Service) FetchStory(ctx context.Context, id int) (story model.Story, err error) {
 	if ctx.Err() != nil {
-		return models.Story{}, ctx.Err()
+		return model.Story{}, ctx.Err()
 	}
 
 	s.sem <- struct{}{}
@@ -103,19 +105,20 @@ func (s *Service) FetchStory(ctx context.Context, id int) (story models.Story, e
 
 	body, err := s.doWithRetry(ctx, url, 3)
 	if err != nil {
-		return models.Story{}, err
+		return model.Story{}, err
 	}
 
 	if err := json.Unmarshal(body, &story); err != nil {
-		return models.Story{}, fmt.Errorf("parse error for story %d: %w", id, err)
+		return model.Story{}, fmt.Errorf("parse error for story %d: %w", id, err)
 	}
 
 	return story, nil
 }
 
-func (s *Service) FetchComment(ctx context.Context, id int) (comment models.Comment, err error) {
+// FetchComment fetches a single comment by ID from the HN API.
+func (s *Service) FetchComment(ctx context.Context, id int) (comment model.Comment, err error) {
 	if ctx.Err() != nil {
-		return models.Comment{}, ctx.Err()
+		return model.Comment{}, ctx.Err()
 	}
 
 	s.sem <- struct{}{}
@@ -125,11 +128,11 @@ func (s *Service) FetchComment(ctx context.Context, id int) (comment models.Comm
 
 	body, err := s.doWithRetry(ctx, url, 3)
 	if err != nil {
-		return models.Comment{}, err
+		return model.Comment{}, err
 	}
 
 	if err := json.Unmarshal(body, &comment); err != nil {
-		return models.Comment{}, fmt.Errorf("parse error for comment %d: %w", id, err)
+		return model.Comment{}, fmt.Errorf("parse error for comment %d: %w", id, err)
 	}
 
 	return comment, nil

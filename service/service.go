@@ -1,4 +1,5 @@
-package services
+// Package service implements the core logic: fetching HN data and processing comment trees concurrently.
+package service
 
 import (
 	"net/http"
@@ -15,6 +16,7 @@ type Service struct {
 	client        *http.Client
 }
 
+// New creates a Service with the given configuration, repositories, and HTTP client.
 func New(storyLimit int, mainStoryRepo *repo.StoryRepo, mainUserRepo *repo.UserRepo, maxConcurrency int, client *http.Client) *Service {
 	return &Service{
 		StoryLimit:    storyLimit,

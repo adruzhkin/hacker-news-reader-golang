@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// ProcessStory fetches a story and recursively processes its entire comment tree.
 func (s *Service) ProcessStory(ctx context.Context, storyID int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -21,6 +22,7 @@ func (s *Service) ProcessStory(ctx context.Context, storyID int, wg *sync.WaitGr
 	go s.ProcessAll(ctx, story.Kids, story.ID, wg)
 }
 
+// ProcessAll fans out goroutines to process each comment ID in the given slice.
 func (s *Service) ProcessAll(ctx context.Context, comments []int, storyID int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
@@ -37,6 +39,7 @@ func (s *Service) ProcessAll(ctx context.Context, comments []int, storyID int, w
 	}
 }
 
+// Process fetches a single comment, records its author, and recurses into child comments.
 func (s *Service) Process(ctx context.Context, commentID int, storyID int, wg *sync.WaitGroup) {
 	defer wg.Done()
 

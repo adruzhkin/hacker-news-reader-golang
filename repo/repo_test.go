@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/adruzhkin/hacker-news-reader-golang/models"
+	"github.com/adruzhkin/hacker-news-reader-golang/model"
 )
 
 // --- UserRepo tests ---
@@ -96,7 +96,7 @@ func TestUserRepo_ConcurrentIncrements(t *testing.T) {
 
 func TestStoryRepo_AddNewAndGetUsersFor(t *testing.T) {
 	r := NewStoryRepo()
-	story := models.Story{ID: 1, Title: "Test Story"}
+	story := model.Story{ID: 1, Title: "Test Story"}
 	r.AddNew(1, story)
 
 	users := r.GetUsersFor(1)
@@ -120,12 +120,12 @@ func TestStoryRepo_GetUsersFor_NonExistent(t *testing.T) {
 
 func TestStoryRepo_ForEach(t *testing.T) {
 	r := NewStoryRepo()
-	r.AddNew(1, models.Story{ID: 1, Title: "Story 1"})
-	r.AddNew(2, models.Story{ID: 2, Title: "Story 2"})
-	r.AddNew(3, models.Story{ID: 3, Title: "Story 3"})
+	r.AddNew(1, model.Story{ID: 1, Title: "Story 1"})
+	r.AddNew(2, model.Story{ID: 2, Title: "Story 2"})
+	r.AddNew(3, model.Story{ID: 3, Title: "Story 3"})
 
 	visited := map[int]bool{}
-	r.ForEach(func(story models.Story, users *UserRepo) {
+	r.ForEach(func(story model.Story, users *UserRepo) {
 		visited[story.ID] = true
 	})
 
@@ -141,8 +141,8 @@ func TestStoryRepo_ForEach(t *testing.T) {
 
 func TestStoryRepo_SortAllUsers(t *testing.T) {
 	r := NewStoryRepo()
-	r.AddNew(1, models.Story{ID: 1})
-	r.AddNew(2, models.Story{ID: 2})
+	r.AddNew(1, model.Story{ID: 1})
+	r.AddNew(2, model.Story{ID: 2})
 
 	users1 := r.GetUsersFor(1)
 	for range 3 {
@@ -177,7 +177,7 @@ func TestStoryRepo_ConcurrentAddAndRead(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			r.AddNew(i, models.Story{ID: i, Title: "Story"})
+			r.AddNew(i, model.Story{ID: i, Title: "Story"})
 		}()
 	}
 

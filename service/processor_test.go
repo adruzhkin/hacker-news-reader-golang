@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/adruzhkin/hacker-news-reader-golang/models"
+	"github.com/adruzhkin/hacker-news-reader-golang/model"
 	"github.com/adruzhkin/hacker-news-reader-golang/repo"
 )
 
@@ -248,7 +248,7 @@ func TestProcessStory_VerifiesStoryInRepo(t *testing.T) {
 	wg.Wait()
 
 	var found bool
-	svc.MainStoryRepo.ForEach(func(story models.Story, users *repo.UserRepo) {
+	svc.MainStoryRepo.ForEach(func(story model.Story, users *repo.UserRepo) {
 		if story.ID == 42 && story.Title == "My Story" && story.CreatedBy == "alice" {
 			found = true
 		}
