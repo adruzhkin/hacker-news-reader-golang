@@ -1,7 +1,6 @@
 package models
 
 type Comment struct {
-	Story       *Story
 	IsDeleted   bool   `json:"deleted"`
 	ID          int    `json:"id"`
 	CreatedBy   string `json:"by"`

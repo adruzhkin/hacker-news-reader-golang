@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/adruzhkin/hacker-news-reader-golang/models"
@@ -10,55 +11,121 @@ import (
 // map is used to fetch data over the http calls. User list presents in order to
 // sort the same users.
 type UserRepo struct {
-	Mutex sync.Mutex
-	Users map[string]int
-	List  *models.UserList
+	mu    sync.Mutex
+	users map[string]int
+	list  models.UserList
 }
 
 func NewUserRepo() *UserRepo {
 	return &UserRepo{
-		Mutex: sync.Mutex{},
-		Users: map[string]int{},
+		users: map[string]int{},
 	}
 }
 
 func (r *UserRepo) IncrementCountFor(name string) {
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	_, ok := r.Users[name]
-	if !ok {
-		r.Users[name] = 0
+	r.users[name]++
+}
+
+// SortAndBuildList builds a sorted UserList from the users map.
+func (r *UserRepo) SortAndBuildList() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.list = make(models.UserList, 0, len(r.users))
+	for k, v := range r.users {
+		r.list = append(r.list, models.User{Name: k, Count: v})
 	}
+	sort.Sort(r.list)
+}
 
-	r.Users[name] += 1
+// GetTopUsers returns sorted users up to the given limit.
+func (r *UserRepo) GetTopUsers(limit int) []models.User {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if limit > len(r.list) {
+		limit = len(r.list)
+	}
+	result := make([]models.User, limit)
+	copy(result, r.list[:limit])
+	return result
+}
+
+// GetCount returns the comment count for a user.
+func (r *UserRepo) GetCount(name string) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return r.users[name]
+}
+
+// StoryEntry pairs a story with its per-story user repository.
+type StoryEntry struct {
+	Story models.Story
+	Users *UserRepo
 }
 
 // StoryRepo holds a map of stories to users who commented on that specific story.
 type StoryRepo struct {
-	Mutex   sync.Mutex
-	Stories map[*models.Story]*UserRepo
+	mu      sync.Mutex
+	stories map[int]*StoryEntry
 }
 
 func NewStoryRepo() *StoryRepo {
 	return &StoryRepo{
-		Mutex:   sync.Mutex{},
-		Stories: map[*models.Story]*UserRepo{},
+		stories: map[int]*StoryEntry{},
 	}
 }
 
-func (r *StoryRepo) AddNew(story *models.Story) {
-	userRepo := NewUserRepo()
+func (r *StoryRepo) AddNew(storyID int, story models.Story) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
-
-	r.Stories[story] = userRepo
+	r.stories[storyID] = &StoryEntry{
+		Story: story,
+		Users: NewUserRepo(),
+	}
 }
 
-func (r *StoryRepo) GetUsersFor(story *models.Story) *UserRepo {
-	r.Mutex.Lock()
-	defer r.Mutex.Unlock()
+func (r *StoryRepo) GetUsersFor(storyID int) *UserRepo {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	return r.Stories[story]
+	entry := r.stories[storyID]
+	if entry == nil {
+		return nil
+	}
+	return entry.Users
+}
+
+// ForEach iterates over all stories, calling fn for each one.
+// The lock is held only while copying entries; fn runs unlocked.
+func (r *StoryRepo) ForEach(fn func(story models.Story, users *UserRepo)) {
+	r.mu.Lock()
+	entries := make([]*StoryEntry, 0, len(r.stories))
+	for _, entry := range r.stories {
+		entries = append(entries, entry)
+	}
+	r.mu.Unlock()
+
+	for _, entry := range entries {
+		fn(entry.Story, entry.Users)
+	}
+}
+
+// SortAllUsers calls SortAndBuildList on each per-story UserRepo.
+func (r *StoryRepo) SortAllUsers() {
+	r.mu.Lock()
+	entries := make([]*StoryEntry, 0, len(r.stories))
+	for _, entry := range r.stories {
+		entries = append(entries, entry)
+	}
+	r.mu.Unlock()
+
+	for _, entry := range entries {
+		entry.Users.SortAndBuildList()
+	}
 }

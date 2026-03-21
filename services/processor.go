@@ -4,8 +4,6 @@ import (
 	"context"
 	"log"
 	"sync"
-
-	"github.com/adruzhkin/hacker-news-reader-golang/models"
 )
 
 func (s *Service) ProcessStory(ctx context.Context, storyID int, wg *sync.WaitGroup) {
@@ -17,13 +15,13 @@ func (s *Service) ProcessStory(ctx context.Context, storyID int, wg *sync.WaitGr
 		return
 	}
 
-	wg.Add(1)
-	go s.ProcessAll(ctx, story.Kids, &story, wg)
+	s.MainStoryRepo.AddNew(story.ID, story)
 
-	s.MainStoryRepo.AddNew(&story)
+	wg.Add(1)
+	go s.ProcessAll(ctx, story.Kids, story.ID, wg)
 }
 
-func (s *Service) ProcessAll(ctx context.Context, comments []int, story *models.Story, wg *sync.WaitGroup) {
+func (s *Service) ProcessAll(ctx context.Context, comments []int, storyID int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if len(comments) == 0 {
@@ -35,11 +33,11 @@ func (s *Service) ProcessAll(ctx context.Context, comments []int, story *models.
 			return
 		}
 		wg.Add(1)
-		go s.Process(ctx, commentID, story, wg)
+		go s.Process(ctx, commentID, storyID, wg)
 	}
 }
 
-func (s *Service) Process(ctx context.Context, commentID int, story *models.Story, wg *sync.WaitGroup) {
+func (s *Service) Process(ctx context.Context, commentID int, storyID int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	comment, err := s.FetchComment(ctx, commentID)
@@ -47,10 +45,9 @@ func (s *Service) Process(ctx context.Context, commentID int, story *models.Stor
 		log.Printf("skipping comment %d: %v", commentID, err)
 		return
 	}
-	comment.Story = story
 
 	wg.Add(1)
-	go s.ProcessAll(ctx, comment.Kids, story, wg)
+	go s.ProcessAll(ctx, comment.Kids, storyID, wg)
 
 	if comment.IsDeleted || comment.CreatedBy == "" {
 		return
@@ -59,6 +56,6 @@ func (s *Service) Process(ctx context.Context, commentID int, story *models.Stor
 	name := comment.CreatedBy
 	s.MainUserRepo.IncrementCountFor(name)
 
-	userRepo := s.MainStoryRepo.GetUsersFor(comment.Story)
+	userRepo := s.MainStoryRepo.GetUsersFor(storyID)
 	userRepo.IncrementCountFor(name)
 }

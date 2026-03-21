@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"sort"
 	"sync"
 	"time"
 
@@ -19,14 +18,10 @@ import (
 )
 
 var (
-	mainStoryRepo = repo.NewStoryRepo()
-	mainUserRepo  = repo.NewUserRepo()
-	storyLimit    = flag.Int("story", 30, "how many stories to fetch")
-	userLimit     = flag.Int("user", 10, "how many users to fetch for each story")
-	output        = flag.String("output", "table", "type of results output")
-	pool          = make(chan Job)
-	service       *services.Service
-	wg            sync.WaitGroup
+	storyLimit = flag.Int("story", 30, "how many stories to fetch")
+	userLimit  = flag.Int("user", 10, "how many users to fetch for each story")
+	output     = flag.String("output", "table", "type of results output")
+	pool       = make(chan Job)
 )
 
 type Job struct {
@@ -50,27 +45,31 @@ func main() {
 		},
 	}
 
-	service = services.New(*storyLimit, mainStoryRepo, mainUserRepo, 20, httpClient)
+	mainStoryRepo := repo.NewStoryRepo()
+	mainUserRepo := repo.NewUserRepo()
+	service := services.New(*storyLimit, mainStoryRepo, mainUserRepo, 20, httpClient)
 
 	stories, err := service.FetchStoryIDs(ctx)
 	if err != nil {
 		log.Fatalf("failed to fetch story IDs: %v", err)
 	}
 
-	wg.Add(1)
+	var wg sync.WaitGroup
+
 	go allocateJobs(stories)
-	go processJobs(ctx, &wg)
+	for job := range pool {
+		wg.Add(1)
+		go service.ProcessStory(ctx, job.StoryID, &wg)
+	}
 	wg.Wait()
 
-	wg.Add(1)
-	go processUsers(&wg)
-	wg.Wait()
+	mainStoryRepo.SortAllUsers()
 
 	switch *output {
 	case "list":
-		printResultsAsList()
+		printResultsAsList(mainStoryRepo, mainUserRepo, *userLimit)
 	default:
-		printResultsAsTable()
+		printResultsAsTable(mainStoryRepo, mainUserRepo, *userLimit)
 	}
 
 	elapsed := time.Since(start)
@@ -84,78 +83,32 @@ func allocateJobs(stories []int) {
 	close(pool)
 }
 
-func processJobs(ctx context.Context, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	for job := range pool {
-		wg.Add(1)
-		go service.ProcessStory(ctx, job.StoryID, wg)
-	}
-}
-
-func processUsers(wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	for _, userRepo := range mainStoryRepo.Stories {
-		wg.Add(1)
-		go sortUsers(userRepo, wg)
-	}
-}
-
-func sortUsers(userRepo *repo.UserRepo, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	userRepo.Mutex.Lock()
-	defer userRepo.Mutex.Unlock()
-
-	userList := make(models.UserList, len(userRepo.Users))
-	i := 0
-	for k, v := range userRepo.Users {
-		userList[i] = models.User{Name: k, Count: v}
-		i++
-	}
-
-	sort.Sort(userList)
-	userRepo.List = &userList
-}
-
-func printResultsAsTable() {
+func printResultsAsTable(storyRepo *repo.StoryRepo, userRepo *repo.UserRepo, limit int) {
 	t := table.NewWriter()
-	tTemp := table.Table{}
-	tTemp.Render()
 
-	for story, userRepo := range mainStoryRepo.Stories {
-		r := table.Row{}
-		r = append(r, story.Title)
-		for i, user := range *userRepo.List {
-			if i >= *userLimit {
-				break
-			}
-			r = append(r, fmt.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, mainUserRepo.Users[user.Name]))
+	storyRepo.ForEach(func(story models.Story, users *repo.UserRepo) {
+		r := table.Row{story.Title}
+		for _, user := range users.GetTopUsers(limit) {
+			r = append(r, fmt.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, userRepo.GetCount(user.Name)))
 		}
 		t.AppendRow(r)
-	}
+	})
 
 	fmt.Println(t.Render())
 }
 
-func printResultsAsList() {
+func printResultsAsList(storyRepo *repo.StoryRepo, userRepo *repo.UserRepo, limit int) {
 	l := list.NewWriter()
-	lTemp := list.List{}
-	lTemp.Render()
 	l.SetStyle(list.StyleConnectedRounded)
 
-	for story, userRepo := range mainStoryRepo.Stories {
+	storyRepo.ForEach(func(story models.Story, users *repo.UserRepo) {
 		l.AppendItem(story.Title)
 		l.Indent()
-		for i, user := range *userRepo.List {
-			if i >= *userLimit {
-				break
-			}
-			l.AppendItem(fmt.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, mainUserRepo.Users[user.Name]))
+		for _, user := range users.GetTopUsers(limit) {
+			l.AppendItem(fmt.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, userRepo.GetCount(user.Name)))
 		}
 		l.UnIndent()
-	}
+	})
 
 	fmt.Println(l.Render())
 }
