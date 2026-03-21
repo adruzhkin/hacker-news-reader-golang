@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"sort"
 	"sync"
 	"time"
@@ -39,7 +41,16 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	service = services.New(*storyLimit, mainStoryRepo, mainUserRepo, 20)
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			DialContext:         (&net.Dialer{Timeout: 5 * time.Second}).DialContext,
+			TLSHandshakeTimeout: 5 * time.Second,
+			MaxIdleConnsPerHost: 20,
+		},
+	}
+
+	service = services.New(*storyLimit, mainStoryRepo, mainUserRepo, 20, httpClient)
 
 	stories, err := service.FetchStoryIDs(ctx)
 	if err != nil {
