@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 	"time"
@@ -10,7 +11,6 @@ import (
 	"github.com/adruzhkin/hacker-news-reader-golang/models"
 	"github.com/adruzhkin/hacker-news-reader-golang/repo"
 	"github.com/adruzhkin/hacker-news-reader-golang/services"
-	"github.com/adruzhkin/hacker-news-reader-golang/utils"
 	"github.com/jedib0t/go-pretty/v6/list"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
@@ -38,7 +38,9 @@ func main() {
 	service = services.New(*storyLimit, mainStoryRepo, mainUserRepo)
 
 	stories, err := service.FetchStoryIDs()
-	utils.Check(err)
+	if err != nil {
+		log.Fatalf("failed to fetch story IDs: %v", err)
+	}
 
 	wg.Add(1)
 	go allocateJobs(stories)
@@ -91,8 +93,6 @@ func sortUsers(userRepo *repo.UserRepo, wg *sync.WaitGroup) {
 	userRepo.Mutex.Lock()
 	defer userRepo.Mutex.Unlock()
 
-	// Empty user holds deleted comments fetched by API
-	delete(userRepo.Users, "")
 	userList := make(models.UserList, len(userRepo.Users))
 	i := 0
 	for k, v := range userRepo.Users {
