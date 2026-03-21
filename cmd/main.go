@@ -14,6 +14,7 @@ import (
 	"github.com/adruzhkin/hacker-news-reader-golang/repo"
 	"github.com/adruzhkin/hacker-news-reader-golang/services"
 	"github.com/jedib0t/go-pretty/v6/list"
+	"github.com/jedib0t/go-pretty/v6/text"
 )
 
 var (
@@ -81,10 +82,10 @@ func printResultsAsList(storyRepo *repo.StoryRepo, userRepo *repo.UserRepo, limi
 	l.SetStyle(list.StyleConnectedRounded)
 
 	storyRepo.ForEach(func(story models.Story, users *repo.UserRepo) {
-		l.AppendItem(story.Title)
+		l.AppendItem(text.FgCyan.Sprint(story.Title))
 		l.Indent()
 		for _, user := range users.GetTopUsers(limit) {
-			l.AppendItem(fmt.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, userRepo.GetCount(user.Name)))
+			l.AppendItem(text.FgGreen.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, userRepo.GetCount(user.Name)))
 		}
 		l.UnIndent()
 	})
