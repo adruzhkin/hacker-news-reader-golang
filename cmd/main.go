@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -35,16 +36,19 @@ func main() {
 
 	start := time.Now()
 
-	service = services.New(*storyLimit, mainStoryRepo, mainUserRepo)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 
-	stories, err := service.FetchStoryIDs()
+	service = services.New(*storyLimit, mainStoryRepo, mainUserRepo, 20)
+
+	stories, err := service.FetchStoryIDs(ctx)
 	if err != nil {
 		log.Fatalf("failed to fetch story IDs: %v", err)
 	}
 
 	wg.Add(1)
 	go allocateJobs(stories)
-	go processJobs(&wg)
+	go processJobs(ctx, &wg)
 	wg.Wait()
 
 	wg.Add(1)
@@ -69,12 +73,12 @@ func allocateJobs(stories []int) {
 	close(pool)
 }
 
-func processJobs(wg *sync.WaitGroup) {
+func processJobs(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for job := range pool {
 		wg.Add(1)
-		go service.ProcessStory(job.StoryID, wg)
+		go service.ProcessStory(ctx, job.StoryID, wg)
 	}
 }
 

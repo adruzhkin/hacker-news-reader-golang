@@ -1,28 +1,29 @@
 package services
 
 import (
+	"context"
 	"log"
 	"sync"
 
 	"github.com/adruzhkin/hacker-news-reader-golang/models"
 )
 
-func (s *Service) ProcessStory(storyID int, wg *sync.WaitGroup) {
+func (s *Service) ProcessStory(ctx context.Context, storyID int, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	story, err := s.FetchStory(storyID)
+	story, err := s.FetchStory(ctx, storyID)
 	if err != nil {
 		log.Printf("skipping story %d: %v", storyID, err)
 		return
 	}
 
 	wg.Add(1)
-	go s.ProcessAll(story.Kids, &story, wg)
+	go s.ProcessAll(ctx, story.Kids, &story, wg)
 
 	s.MainStoryRepo.AddNew(&story)
 }
 
-func (s *Service) ProcessAll(comments []int, story *models.Story, wg *sync.WaitGroup) {
+func (s *Service) ProcessAll(ctx context.Context, comments []int, story *models.Story, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	if len(comments) == 0 {
@@ -30,15 +31,18 @@ func (s *Service) ProcessAll(comments []int, story *models.Story, wg *sync.WaitG
 	}
 
 	for _, commentID := range comments {
+		if ctx.Err() != nil {
+			return
+		}
 		wg.Add(1)
-		go s.Process(commentID, story, wg)
+		go s.Process(ctx, commentID, story, wg)
 	}
 }
 
-func (s *Service) Process(commentID int, story *models.Story, wg *sync.WaitGroup) {
+func (s *Service) Process(ctx context.Context, commentID int, story *models.Story, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	comment, err := s.FetchComment(commentID)
+	comment, err := s.FetchComment(ctx, commentID)
 	if err != nil {
 		log.Printf("skipping comment %d: %v", commentID, err)
 		return
@@ -46,7 +50,7 @@ func (s *Service) Process(commentID int, story *models.Story, wg *sync.WaitGroup
 	comment.Story = story
 
 	wg.Add(1)
-	go s.ProcessAll(comment.Kids, story, wg)
+	go s.ProcessAll(ctx, comment.Kids, story, wg)
 
 	if comment.IsDeleted || comment.CreatedBy == "" {
 		return

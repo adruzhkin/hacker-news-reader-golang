@@ -7,12 +7,14 @@ type Service struct {
 	StoryLimit    int
 	MainStoryRepo *repo.StoryRepo
 	MainUserRepo  *repo.UserRepo
+	sem           chan struct{}
 }
 
-func New(storyLimit int, mainStoryRepo *repo.StoryRepo, mainUserRepo *repo.UserRepo) *Service {
+func New(storyLimit int, mainStoryRepo *repo.StoryRepo, mainUserRepo *repo.UserRepo, maxConcurrency int) *Service {
 	return &Service{
 		StoryLimit:    storyLimit,
 		MainStoryRepo: mainStoryRepo,
 		MainUserRepo:  mainUserRepo,
+		sem:           make(chan struct{}, maxConcurrency),
 	}
 }

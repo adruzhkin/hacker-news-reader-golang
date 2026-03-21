@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,10 +17,15 @@ var (
 	itemURL = "https://hacker-news.firebaseio.com/v0/item/%v.json"
 )
 
-func (s *Service) FetchStoryIDs() (stories []int, err error) {
+func (s *Service) FetchStoryIDs(ctx context.Context) (stories []int, err error) {
 	url := fmt.Sprintf(baseURL, s.StoryLimit, sortKey)
 
-	res, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return []int{}, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return []int{}, err
 	}
@@ -38,10 +44,22 @@ func (s *Service) FetchStoryIDs() (stories []int, err error) {
 	return stories, nil
 }
 
-func (s *Service) FetchStory(id int) (story models.Story, err error) {
+func (s *Service) FetchStory(ctx context.Context, id int) (story models.Story, err error) {
+	if ctx.Err() != nil {
+		return models.Story{}, ctx.Err()
+	}
+
+	s.sem <- struct{}{}
+	defer func() { <-s.sem }()
+
 	url := fmt.Sprintf(itemURL, id)
 
-	res, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return models.Story{}, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return models.Story{}, err
 	}
@@ -60,10 +78,22 @@ func (s *Service) FetchStory(id int) (story models.Story, err error) {
 	return story, nil
 }
 
-func (s *Service) FetchComment(id int) (comment models.Comment, err error) {
+func (s *Service) FetchComment(ctx context.Context, id int) (comment models.Comment, err error) {
+	if ctx.Err() != nil {
+		return models.Comment{}, ctx.Err()
+	}
+
+	s.sem <- struct{}{}
+	defer func() { <-s.sem }()
+
 	url := fmt.Sprintf(itemURL, id)
 
-	res, err := http.Get(url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return models.Comment{}, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return models.Comment{}, err
 	}
