@@ -8,36 +8,6 @@ For each story the output shows:
 
 ### Example
 
-Considering the top 3 stories and top 2 commenters:
-
-| Story   | 1st Top Commenter              | 2nd Top Commenter               |
-|---------|--------------------------------|---------------------------------|
-| Story A | user-c (3 for story - 8 total) | user-b (2 for story - 10 total) |
-| Story B | user-a (4 for story - 9 total) | user-b (3 for story - 10 total) |
-| Story C | user-b (5 for story - 10 total)| user-a (4 for story - 9 total)  |
-
-### Requirements
-
-- Go 1.26.1+
-
-### Build and Run
-
-Run with default settings (30 stories, 10 commenters, table output):
-```bash
-go run ./cmd
-```
-
-Custom number of stories and commenters:
-```bash
-go run ./cmd -story 5 -user 3
-```
-
-List output instead of table:
-```bash
-go run ./cmd -story 5 -user 3 -output list
-```
-
-List output example:
 ```text
 ╭─ Cog: Containers for Machine Learning
 │  ╰─ nigma1337 (1 for story - 1 total)
@@ -47,6 +17,22 @@ List output example:
 │  ├─ danlark (4 for story - 4 total)
 │  ├─ jeffbee (4 for story - 4 total)
 │  ╰─ samhw (4 for story - 4 total)
+```
+
+### Requirements
+
+- Go 1.26.1+
+
+### Build and Run
+
+Run with default settings (30 stories, 10 commenters):
+```bash
+go run ./cmd
+```
+
+Custom number of stories and commenters:
+```bash
+go run ./cmd -story 5 -user 3
 ```
 
 ### Testing

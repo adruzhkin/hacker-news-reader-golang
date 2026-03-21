@@ -14,13 +14,11 @@ import (
 	"github.com/adruzhkin/hacker-news-reader-golang/repo"
 	"github.com/adruzhkin/hacker-news-reader-golang/services"
 	"github.com/jedib0t/go-pretty/v6/list"
-	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 var (
 	storyLimit = flag.Int("story", 30, "how many stories to fetch")
 	userLimit  = flag.Int("user", 10, "how many users to fetch for each story")
-	output     = flag.String("output", "table", "type of results output")
 	pool       = make(chan Job)
 )
 
@@ -65,12 +63,7 @@ func main() {
 
 	mainStoryRepo.SortAllUsers()
 
-	switch *output {
-	case "list":
-		printResultsAsList(mainStoryRepo, mainUserRepo, *userLimit)
-	default:
-		printResultsAsTable(mainStoryRepo, mainUserRepo, *userLimit)
-	}
+	printResultsAsList(mainStoryRepo, mainUserRepo, *userLimit)
 
 	elapsed := time.Since(start)
 	fmt.Printf("\nExecution took: %s\n", elapsed)
@@ -81,20 +74,6 @@ func allocateJobs(stories []int) {
 		pool <- Job{storyID}
 	}
 	close(pool)
-}
-
-func printResultsAsTable(storyRepo *repo.StoryRepo, userRepo *repo.UserRepo, limit int) {
-	t := table.NewWriter()
-
-	storyRepo.ForEach(func(story models.Story, users *repo.UserRepo) {
-		r := table.Row{story.Title}
-		for _, user := range users.GetTopUsers(limit) {
-			r = append(r, fmt.Sprintf("%s (%d for story - %d total)", user.Name, user.Count, userRepo.GetCount(user.Name)))
-		}
-		t.AppendRow(r)
-	})
-
-	fmt.Println(t.Render())
 }
 
 func printResultsAsList(storyRepo *repo.StoryRepo, userRepo *repo.UserRepo, limit int) {
