@@ -27,12 +27,12 @@ For each story the output shows:
 
 Run with default settings (30 stories, 10 commenters):
 ```bash
-go run ./cmd
+go run ./cmd/hn-reader
 ```
 
 Custom number of stories and commenters:
 ```bash
-go run ./cmd -story 5 -user 3
+go run ./cmd/hn-reader -story 5 -user 3
 ```
 
 ### Testing
